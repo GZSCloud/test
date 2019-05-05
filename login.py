@@ -1,38 +1,55 @@
-#@功能：利用selenium实现简单的自动登录测试
-#@时间: 2019年4月28日20:59
+# @Time  : 2019/4/28 22:11
+# @功能  ：利用selenium实现简单的提交表单类型的自动化测试
 from selenium import webdriver
+import json
 browser = webdriver.Chrome()
-url = 'https://github.com/login'
-browser.get(url)
 
-def login(item):
-    '''
-    通过xpath语句匹配合适的标签名和属性名，找到登录框的用户名输入框，密码输入框和登录按钮；
-    用send_keys()输入测试值提交表单进行登录，通过返回的网页中的关键字判断是否登录成功。
 
-    :param item: item列表应有两个元素，测试用的用户名和密码
-    :return: True/False 登录成功返回True，不成功返回False
-    '''
+def login(jsonData):
+    """
+    通过传输为标准json字符串的参数，实现提交表单类型的自动化测试；
+    支持任意多个输入框的定位和输入，此时xpath和data为数组形式；
+    :param jsonData: json标准格式的字符串
+    :return: True/False 在响应的页面中匹配judge_words成功返回True，不成功返回False
+    """
 
-    # 找到用户名输入框：为input标签且name属性等于'login'或者type属性等于'text'
-    name=browser.find_element_by_xpath("//input[@name='login'or@type='text']")
-    name.clear()
-    name.send_keys(item[0])
+    # 解析json字符串，转换成相应的数据结构
+    data = json.loads(jsonData)
 
-    # 找到密码输入框：为input标签且type属性等于'password'
-    passwd=browser.find_element_by_xpath("//input[@type='password']")
-    passwd.clear()
-    passwd.send_keys(item[1])
+    # 打开网页
+    browser.get(data['url'])
 
-    # 找到为input标签且type属性值为'submit'的"提交"按钮并点击
-    browser.find_element_by_xpath("//input[@type='submit']").click()
+    # 根据xpath语句和data实现自动定位到输入框并输入数据
+    # 支持一个网页中任意多个输入框的输入
+    if str(type(data['xpath'])) == "<class 'list'>":
+        for i in range(0,len(data['xpath'])):
+            name = browser.find_element_by_xpath(data['xpath'][i])
+            name.clear()
+            name.send_keys(data['data'][i])
+    else:
+        item = browser.find_element_by_xpath(data['xpath'])
+        item.clear()
+        item.send_keys(data['data'])
+
+    #  查找提交按钮并点击
+    browser.find_element_by_xpath(data['xpath_submit']).click()
 
     # 在网页源码中匹配相应的关键字，判断是否登陆成功
-    if browser.page_source.find("Incorrect username or password.") != -1:
+    if browser.page_source.find(data["judge_words"]) != -1:
         return False
     else:
         return True
 
 
-# 由于在python3中map输出的是可迭代对象，可以用list()让它自动迭代运行，否则不会运行函数
-print(list(map(login,[["abcd","1234"],["hubu","1234"],["cdef","1234"]])))
+# 标准json字符串格式，以后将支持从数据库中读取关键字自动生成json格式的字符串数组
+JsonData = ["""{
+    "url":"https://github.com/login",
+    "xpath":["//input[@name='login'or@type='text']","//input[@type='password']"],
+    "data": ["abcd","1234"],
+    "xpath_submit":"//input[@type='submit']",
+    "judge_words":"Incorrect username or password."
+}"""]
+
+if __name__ == '__main__':
+    # 由于在python3中map输出的是可迭代对象，可以用list()让它自动迭代运行，否则不会运行函数
+    print(list(map(login, JsonData)))

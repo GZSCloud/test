@@ -9,13 +9,12 @@ import shutil
 import optparse
 
 """还未解决：
-    项目文件夹已经存在会报错
-    数据库，表需要手动创建
-    下载下来的项目的配置文件没有更改
-    编译部署后还没有运行
-    log文件夹没有判断存不存在
-    没有判断部署目录是否存在
-    第一次需要手动输入git的账号和密码 
+    项目文件夹已经存在会报错----------------------------已解决, 存在则删除
+    数据库，表需要手动创建------------------------------已解决
+    下载下来的项目的配置文件没有更改-------------------------待解决
+    编译部署后还没有运行--------------------------放到程序最后运行
+    log文件夹没有判断存不存在----------------------不存在则创建，存在则不变
+    没有判断部署目录是否存在---------------------------存在则删除
     还没有加命令行输入数据库sql文件的路径----------------------已解决,但是要相对于maven根目录
     没有创建单独工作目录----------------------已解决
     
@@ -29,12 +28,15 @@ import optparse
 
 PWD = os.getcwd()
 LOGFILE = "log/coding.log"
+# LOGFILE = "/var/log"
 GITUSER = "xing_gang"
 GITPASS = "Xing@qq.com"
 
 class Downloader(object):
     def __init__(self, maven_dir, vue_dir, database_name, user_name, password, project_dir, deploy_dir, sqlfile):
         self.project_dir = project_dir
+        if os.path.exists(self.project_dir):  # 如果存在则删除
+            shutil.rmtree(self.project_dir)
         os.mkdir(self.project_dir)
         # self.url = url
         # self.Repo = Repo.clone_from("https://git.coding.net/myhomeCode/telecomback.git", dir)
@@ -46,8 +48,14 @@ class Downloader(object):
         self.password = password
         self.sqlfile = sqlfile
         self.deploy_dir = deploy_dir    # 部署位置
+        if os.path.exists(deploy_dir):
+            shutil.rmtree(deploy_dir)
         os.mkdir(self.deploy_dir)
         os.chdir(self.deploy_dir)
+        if os.path.exists("front"):
+            shutil.rmtree("front")
+        if os.path.exists("back"):
+            shutil.rmtree("back")
         os.mkdir("front")
         os.mkdir("back")
         os.chdir(PWD)
@@ -177,7 +185,8 @@ class Downloader(object):
 
 
 def main():
-    os.mkdir("log")
+    if not os.path.exists("log"):  # 如果log目录不存在则创建
+        os.mkdir("log")
     logging.basicConfig(level=logging.DEBUG,
                         filename=LOGFILE,
                         filemode='a',
